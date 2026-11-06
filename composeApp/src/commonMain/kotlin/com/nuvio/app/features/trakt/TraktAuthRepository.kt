@@ -90,7 +90,8 @@ object TraktAuthRepository : TrackingAuthProvider {
     private var currentProfileId: Int = 1
     private var profileGeneration: Long = 0L
     private var authState = TraktAuthState()
-    private var authenticationMethod = TraktAuthenticationMethod.BROWSER_REDIRECT
+    private val defaultAuthenticationMethod = TraktAuthenticationMethod.fromStorageValue(TraktConfig.DEFAULT_AUTH_METHOD)
+    private var authenticationMethod = defaultAuthenticationMethod
     private var devicePollingJob: Job? = null
 
     override fun ensureLoaded() {
@@ -118,7 +119,7 @@ object TraktAuthRepository : TrackingAuthProvider {
         currentProfileId = 1
         profileGeneration += 1L
         authState = TraktAuthState()
-        authenticationMethod = TraktAuthenticationMethod.BROWSER_REDIRECT
+        authenticationMethod = defaultAuthenticationMethod
         publish()
     }
 
@@ -738,14 +739,14 @@ object TraktAuthRepository : TrackingAuthProvider {
     }
 
     private fun readAuthenticationMethod(payload: String): TraktAuthenticationMethod {
-        if (payload.isBlank()) return TraktAuthenticationMethod.BROWSER_REDIRECT
+        if (payload.isBlank()) return defaultAuthenticationMethod
         val value = runCatching {
             json.parseToJsonElement(payload)
                 .jsonObject[AUTH_METHOD_PAYLOAD_KEY]
                 ?.jsonPrimitive
                 ?.content
         }.getOrNull()
-        return TraktAuthenticationMethod.fromStorageValue(value)
+        return TraktAuthenticationMethod.fromStorageValue(value, defaultAuthenticationMethod)
     }
 
     private fun pendingDeviceCode(): String? = pendingDeviceAuthorization()?.deviceCode
@@ -837,8 +838,11 @@ internal enum class TraktAuthenticationMethod(
     DEVICE_CODE("device_code");
 
     companion object {
-        fun fromStorageValue(value: String?): TraktAuthenticationMethod =
-            entries.firstOrNull { it.storageValue == value } ?: BROWSER_REDIRECT
+        fun fromStorageValue(
+            value: String?,
+            fallback: TraktAuthenticationMethod = BROWSER_REDIRECT,
+        ): TraktAuthenticationMethod =
+            entries.firstOrNull { it.storageValue == value } ?: fallback
     }
 }
 

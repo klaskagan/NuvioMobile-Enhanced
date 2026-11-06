@@ -22,6 +22,9 @@ node_modules/
 logs/
 analysis/
 Docs
+!/[Dd]ocs/
+/[Dd]ocs/*
+!/[Dd]ocs/playback-quality-capabilities.md
 SUPPORTER_COSMETICS.md
 supabase/migrations/
 keystore/
